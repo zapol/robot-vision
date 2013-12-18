@@ -24,16 +24,16 @@ Mat calculateZ(const Mat &imgL, const Mat &imgR, int cellWidth, int cellHeight, 
 
     outWidth = (imgL.cols - cellWidth - sweepRange - abs(zOffset) ) / stepX + 1;
     outHeight = (imgL.rows - cellHeight) / stepY + 1;
-    outImg = Mat(outWidth, outHeight, CV_8UC1);
-    outImg2 = Mat(outWidth, outHeight, CV_8UC1);
-    result.create( cellWidth + sweepRange, cellHeight, CV_32FC1 );
+    outImg = Mat(outHeight, outWidth, CV_8UC1);
+    outImg2 = Mat(outHeight, outWidth, CV_8UC1);
+    result.create(cellHeight,  cellWidth + sweepRange, CV_32FC1 );
 
     printf("OutWidth: %d\n", outWidth);
     printf("outHeight: %d\n", outHeight);
 
     for (int y = 0; y != outHeight; y++)
     {
-        printf("Line %d\n", y);
+        printf("Line %d/%d\n", y, outHeight);
         for (int x = 0; x != outWidth; x++)
         {
             //            printf("Running X: %4d, Y: %4d (W: %4d, H: %4d)\n", x, y, imgL.cols, imgL.rows);
@@ -50,39 +50,26 @@ Mat calculateZ(const Mat &imgL, const Mat &imgR, int cellWidth, int cellHeight, 
                 printf("Dimensions exceeded\n X: %d, Y: %d\n RectL X: %d, Y: %d\n RectR X: %d, Y: %d\n", x,y,l.x,l.y,r.x,r.y);
             }
 
-            // normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
-            // namedWindow( "Correlation result", CV_WINDOW_AUTOSIZE );
-            // imshow( "Correlation result", result );
-            // waitKey(0);
-//            printf("X: %3d, Y: %3d ", x,y);
             double minVal; double maxVal; Point minLoc; Point maxLoc;
             Point matchLoc;
             minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
-//            printf("2");
-            //outImg.ptr(y)[x] = minLoc.x;
-            outImg.at<char>(x,y) = maxLoc.x;
-            outImg2.at<char>(x,y) = minLoc.x;
-//            printf("3");
-//            printf("Z: %3d, %3d\n", minLoc.x, maxLoc.x);
-
-            // Mat showL, showR;
-            // showL = imgL.clone();
-            // rectangle(showL, l, Scalar(0, 0, 255));
-            // namedWindow( "Left Image", CV_WINDOW_AUTOSIZE );
-            // imshow( "Left Image", showL );
-
-            // showR = imgR.clone();
-            // rectangle(showR, r, Scalar(0, 0, 255));
-            // namedWindow( "Right Image", CV_WINDOW_AUTOSIZE );
-            // imshow( "Right Image", showR );
-
-            namedWindow( "Z buffer", CV_WINDOW_AUTOSIZE );
-            imshow( "Z buffer", outImg );
-            namedWindow( "Z buffer2", CV_WINDOW_AUTOSIZE );
-            imshow( "Z buffer2", outImg2 );
-            // waitKey(0);
+            if(maxVal-minVal>1500000)
+            {
+                outImg.at<char>(y,x) = 255-maxLoc.x*4;
+                outImg2.at<char>(y,x) = 255-minLoc.x*4;
+            }
+            else
+            {
+                outImg.at<char>(y,x) = 0;
+                outImg2.at<char>(y,x) = 0;                
+            }
         }
     }
+    printf("OutImg size: %d x %d\n", outImg.cols, outImg.rows);
+    namedWindow( "Z buffer", CV_WINDOW_AUTOSIZE );
+    imshow( "Z buffer", outImg );
+    namedWindow( "Z buffer2", CV_WINDOW_AUTOSIZE );
+    imshow( "Z buffer2", outImg2 );
     printf("Calculated, returning...\n");
     return outImg;
 }
@@ -120,7 +107,7 @@ int main( int argc, char **argv )
     r = Rect(sizeX, 0, sizeX, sizeY);
     imgR = image(r);
 
-    imgZ = calculateZ(imgL, imgR, 50, 50, 4, 4, 50, 0);
+    imgZ = calculateZ(imgL, imgR, 20, 20, 1, 1, 50, 0);
 
     namedWindow( "Left", CV_WINDOW_AUTOSIZE );
     imshow( "Left", imgL );
